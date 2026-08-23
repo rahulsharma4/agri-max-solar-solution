@@ -137,7 +137,7 @@ const leadSchema = mongoose.Schema(
     ],
     personalInfo: {
       profileImage: { type: String }, // Base64 (Primary)
-      additionalImages: [{ type: String }], // Array of Base64 strings
+      additionalImages: [{ type: mongoose.Schema.Types.Mixed }], // Array of Base64 strings or file objects { url, name, type }
       alternatePhone: { type: String },
       whatsappNumber: { type: String },
       gender: { type: String, enum: ['Male', 'Female', 'Other'] },

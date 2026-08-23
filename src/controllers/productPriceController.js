@@ -17,11 +17,11 @@ const getProductPrices = async (req, res) => {
 // @route   POST /api/product-prices
 // @access  Private/Admin
 const addProductPrice = async (req, res) => {
-  const { category, name, price } = req.body;
+  const { category, name, price, warranty } = req.body;
 
   try {
-    if (!category || !name || price === undefined) {
-      return res.status(400).json({ message: 'Please provide all fields' });
+    if (!category || !name) {
+      return res.status(400).json({ message: 'Please provide category and name' });
     }
 
     const priceExists = await ProductPrice.findOne({
@@ -37,7 +37,8 @@ const addProductPrice = async (req, res) => {
     const productPrice = await ProductPrice.create({
       category,
       name,
-      price: Number(price) || 0,
+      price: price !== undefined && price !== '' ? Number(price) : 0,
+      warranty: warranty || '',
       owner: req.user._id,
     });
 
@@ -51,7 +52,7 @@ const addProductPrice = async (req, res) => {
 // @route   PUT /api/product-prices/:id
 // @access  Private/Admin
 const updateProductPrice = async (req, res) => {
-  const { category, name, price } = req.body;
+  const { category, name, price, warranty } = req.body;
 
   try {
     const productPrice = await ProductPrice.findById(req.params.id);
@@ -67,7 +68,8 @@ const updateProductPrice = async (req, res) => {
 
     if (category) productPrice.category = category;
     if (name) productPrice.name = name;
-    if (price !== undefined) productPrice.price = Number(price) || 0;
+    if (price !== undefined) productPrice.price = price !== '' ? Number(price) : 0;
+    if (warranty !== undefined) productPrice.warranty = warranty;
 
     const updatedPrice = await productPrice.save();
     res.json(updatedPrice);

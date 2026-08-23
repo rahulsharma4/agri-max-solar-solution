@@ -13,8 +13,11 @@ const productPriceSchema = mongoose.Schema(
     },
     price: {
       type: Number,
-      required: true,
       default: 0,
+    },
+    warranty: {
+      type: String,
+      default: '',
     },
     owner: {
       type: mongoose.Schema.Types.ObjectId,

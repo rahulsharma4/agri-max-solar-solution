@@ -40,9 +40,11 @@ const quotationSchema = mongoose.Schema(
     solarPanels: { type: String, required: true }, // e.g. "Adani - 620 Wp [7 panels]"
     solarPanelsMake: { type: String, default: 'Adani/Luminous' },
     solarPanelsQty: { type: String, default: 'As per capacity' },
+    solarPanelsWarranty: { type: String, default: '10 Years' },
     inverter: { type: String, required: true }, // e.g. "Polycab - 5 kW (Single Phase)"
     inverterMake: { type: String, default: 'Solis' },
     inverterQty: { type: String, default: '1 Unit' },
+    inverterWarranty: { type: String, default: '5 Years' },
     structureType: { type: String }, // e.g. "Elevated"
     structureMake: { type: String, default: 'Approved Make' },
     structureQty: { type: String, default: 'For panels' },
