@@ -130,7 +130,7 @@ const getContacts = async (req, res) => {
 // @access  Private/Admin
 const createContact = async (req, res) => {
   try {
-    const { name, phone, address, monthlyBill, status, callingStatus, subStatus, remarks, source, referredByStaff, referredByCustomer, paymentMode } = req.body;
+    const { name, phone, email, address, monthlyBill, status, callingStatus, subStatus, remarks, source, referredByStaff, referredByCustomer, paymentMode } = req.body;
     
     // Check for duplicate phone
     if (phone) {
@@ -145,6 +145,7 @@ const createContact = async (req, res) => {
     const contact = new Contact({
       name,
       phone,
+      email: email || '',
       address,
       monthlyBill: monthlyBill || '0-1000',
       status: initialStatus,
@@ -194,6 +195,7 @@ const bulkCreateContacts = async (req, res) => {
       const initialRemarks = c.remarks || '';
       return {
         name: c.name,
+        email: c.email || c.Email || '',
         phone: c.phone ? String(c.phone) : '',
         address: c.address || '',
         monthlyBill: c.monthlyBill || '0-1000',
@@ -423,7 +425,7 @@ const convertContactToLead = async (req, res) => {
 // @access  Private
 const updateContact = async (req, res) => {
   try {
-    const { status, callingStatus, subStatus, remarks, callBackDate, source, referredByStaff, referredByCustomer, paymentMode } = req.body;
+    const { status, callingStatus, subStatus, remarks, callBackDate, email, source, referredByStaff, referredByCustomer, paymentMode } = req.body;
     const contact = await Contact.findById(req.params.id);
 
     if (!contact) {
@@ -458,6 +460,10 @@ const updateContact = async (req, res) => {
         contact.callBackNotified = false;
         isNewCallBack = !!newDate;
       }
+    }
+
+    if (email !== undefined) {
+      contact.email = email;
     }
 
     if (remarks !== undefined) {
