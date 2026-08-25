@@ -76,7 +76,7 @@ app.get('/api/clean-and-seed-temp', async (req, res) => {
     console.log('Creating new Admin user account...');
     const adminUser = new User({
       name: process.env.ADMIN_NAME || 'Admin PS Solar',
-      email: process.env.ADMIN_EMAIL || 'admin@pssolarsolution.com',
+      email: process.env.ADMIN_EMAIL || 'info@pssolar.co.in',
       phone: process.env.ADMIN_PHONE || '9999999999',
       password: process.env.ADMIN_PASSWORD || 'Admin@123',
       role: 'admin',

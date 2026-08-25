@@ -105,7 +105,7 @@ const getInvoices = async (req, res) => {
     }
 
     const invoices = await Invoice.find(query)
-      .populate('lead', 'name email phone address')
+      .populate('lead', 'name email phone address consumerNumber')
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 });
     res.json(invoices);

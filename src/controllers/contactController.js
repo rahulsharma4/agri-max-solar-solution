@@ -130,7 +130,7 @@ const getContacts = async (req, res) => {
 // @access  Private/Admin
 const createContact = async (req, res) => {
   try {
-    const { name, phone, email, address, monthlyBill, status, callingStatus, subStatus, remarks, source, referredByStaff, referredByCustomer, paymentMode } = req.body;
+    const { name, phone, email, consumerNumber, address, monthlyBill, status, callingStatus, subStatus, remarks, source, referredByStaff, referredByCustomer, paymentMode } = req.body;
     
     // Check for duplicate phone
     if (phone) {
@@ -146,6 +146,7 @@ const createContact = async (req, res) => {
       name,
       phone,
       email: email || '',
+      consumerNumber: consumerNumber || '',
       address,
       monthlyBill: monthlyBill || '0-1000',
       status: initialStatus,
@@ -360,7 +361,7 @@ const convertContactToLead = async (req, res) => {
     const Lead = require('../models/leadModel');
     const { 
       solarCapacity, roofType, propertyType, remarks, name, phone, address,
-      monthlyBill, email, quotationAmount, technicalRemarks, companyName, companyAddress, gstNumber,
+      monthlyBill, email, consumerNumber, quotationAmount, technicalRemarks, companyName, companyAddress, gstNumber,
       personalInfo, source, referredByStaff, referredByCustomer, paymentMode, assignedTo
     } = req.body;
 
@@ -370,6 +371,7 @@ const convertContactToLead = async (req, res) => {
       address: address || contact.address,
       monthlyBill: monthlyBill || contact.monthlyBill || '0-1000',
       email: email || undefined,
+      consumerNumber: consumerNumber || contact.consumerNumber || '',
       solarCapacity: solarCapacity || '',
       roofType: roofType || '',
       propertyType: propertyType || '',
@@ -425,7 +427,7 @@ const convertContactToLead = async (req, res) => {
 // @access  Private
 const updateContact = async (req, res) => {
   try {
-    const { status, callingStatus, subStatus, remarks, callBackDate, email, source, referredByStaff, referredByCustomer, paymentMode } = req.body;
+    const { status, callingStatus, subStatus, remarks, callBackDate, email, consumerNumber, source, referredByStaff, referredByCustomer, paymentMode } = req.body;
     const contact = await Contact.findById(req.params.id);
 
     if (!contact) {
@@ -464,6 +466,10 @@ const updateContact = async (req, res) => {
 
     if (email !== undefined) {
       contact.email = email;
+    }
+
+    if (consumerNumber !== undefined) {
+      contact.consumerNumber = consumerNumber;
     }
 
     if (remarks !== undefined) {

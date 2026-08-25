@@ -17,18 +17,19 @@ const createQuotation = async (req, res) => {
       isGstInclusive, billingName, pricingMode, customPrices
     } = req.body;
 
-    // Generate Quotation Number (e.g. Q-2026-0001)
+    // Generate Quotation Number (e.g. 2026-27-0001)
     const year = new Date().getFullYear();
+    const currentFYPrefix = `${year}-${(year + 1).toString().slice(-2)}`;
     const lastQuotation = await Quotation.findOne({
-      quotationNo: new RegExp(`^Q-${year}-`)
+      quotationNo: new RegExp(`^${currentFYPrefix}-`)
     }).sort({ quotationNo: -1 });
 
     let nextNumber = 1;
     if (lastQuotation) {
       const lastNo = parseInt(lastQuotation.quotationNo.split('-')[2]);
-      nextNumber = lastNo + 1;
+      nextNumber = isNaN(lastNo) ? 1 : lastNo + 1;
     }
-    const quotationNo = `Q-${year}-${nextNumber.toString().padStart(4, '0')}`;
+    const quotationNo = `${currentFYPrefix}-${nextNumber.toString().padStart(4, '0')}`;
 
     // Calculations
     const baseAmt = Number(baseAmount) || 0;
@@ -148,7 +149,7 @@ const getQuotations = async (req, res) => {
     }
 
     let quotations = await Quotation.find(query)
-      .populate('lead', 'name email phone address paymentMode leadId')
+      .populate('lead', 'name email phone address paymentMode leadId consumerNumber')
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 })
       .lean();
@@ -179,7 +180,7 @@ const getQuotations = async (req, res) => {
 const getQuotationById = async (req, res) => {
   try {
     const quotation = await Quotation.findById(req.params.id)
-      .populate('lead', 'name email phone address paymentMode leadId')
+      .populate('lead', 'name email phone address paymentMode leadId consumerNumber')
       .populate('createdBy', 'name');
 
     if (quotation) {

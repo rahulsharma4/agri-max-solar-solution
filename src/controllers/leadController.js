@@ -5,12 +5,13 @@ const Notification = require('../models/notificationModel');
 // @route   POST /api/leads
 // @access  Private
 const createLead = async (req, res) => {
-  const { name, email, phone, address, monthlyBill, solarCapacity, roofType, propertyType, source, assignedTo, personalInfo, referredByStaff, referredByCustomer, paymentMode } = req.body;
+  const { name, email, consumerNumber, phone, address, monthlyBill, solarCapacity, roofType, propertyType, source, assignedTo, personalInfo, referredByStaff, referredByCustomer, paymentMode } = req.body;
 
   try {
     const lead = await Lead.create({
       name,
       email,
+      consumerNumber: consumerNumber || '',
       phone,
       address,
       monthlyBill: monthlyBill || '0-1000',
@@ -187,6 +188,9 @@ const updateLead = async (req, res) => {
 
       lead.name = req.body.name || lead.name;
       lead.email = req.body.email || lead.email;
+      if (req.body.consumerNumber !== undefined) {
+        lead.consumerNumber = req.body.consumerNumber;
+      }
       lead.phone = req.body.phone || lead.phone;
       lead.address = req.body.address || lead.address;
       lead.monthlyBill = req.body.monthlyBill || lead.monthlyBill || '0-1000';

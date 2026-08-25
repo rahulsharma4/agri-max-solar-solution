@@ -15,7 +15,7 @@ const updateAdmin = async () => {
     console.log('MongoDB Connected successfully!');
 
     const oldEmail = 'admin@priyankasolar.com';
-    const newEmail = process.env.ADMIN_EMAIL || 'admin@pssolarsolution.com';
+    const newEmail = process.env.ADMIN_EMAIL || 'info@pssolar.co.in';
     const newName = process.env.ADMIN_NAME || 'Admin PS Solar';
     const newPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
 

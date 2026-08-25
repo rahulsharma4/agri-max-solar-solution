@@ -54,6 +54,10 @@ const contactSchema = mongoose.Schema(
       type: String,
       default: '',
     },
+    consumerNumber: {
+      type: String,
+      default: '',
+    },
     fbLeadId: {
       type: String,
       sparse: true,

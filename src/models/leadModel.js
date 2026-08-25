@@ -9,6 +9,10 @@ const leadSchema = mongoose.Schema(
     email: {
       type: String,
     },
+    consumerNumber: {
+      type: String,
+      default: '',
+    },
     phone: {
       type: String,
       required: true,
