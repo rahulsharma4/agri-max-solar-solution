@@ -75,9 +75,9 @@ app.get('/api/clean-and-seed-temp', async (req, res) => {
 
     console.log('Creating new Admin user account...');
     const adminUser = new User({
-      name: process.env.ADMIN_NAME || 'Admin PS Solar',
-      email: process.env.ADMIN_EMAIL || 'info@pssolar.co.in',
-      phone: process.env.ADMIN_PHONE || '9999999999',
+      name: process.env.ADMIN_NAME || 'Admin Agri Max Solar',
+      email: process.env.ADMIN_EMAIL || 'rpravin337@gmail.com',
+      phone: process.env.ADMIN_PHONE || '7470700682',
       password: process.env.ADMIN_PASSWORD || 'Admin@123',
       role: 'admin',
       status: 'active',
@@ -91,7 +91,7 @@ app.get('/api/clean-and-seed-temp', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('PS Solar Solution CRM API is running...');
+  res.send('AGRI MAX SOLAR SOLUTION CRM API is running...');
 });
 
 const PORT = process.env.PORT || 5000;
