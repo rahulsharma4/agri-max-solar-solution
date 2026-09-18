@@ -401,4 +401,20 @@ const updateEmiStatus = async (req, res) => {
   }
 };
 
-module.exports = { createQuotation, getQuotations, getQuotationById, updateQuotation, updateFulfillmentStatus, updateEmiStatus };
+// @desc    Delete a quotation
+// @route   DELETE /api/quotations/:id
+// @access  Private/Admin
+const deleteQuotation = async (req, res) => {
+  try {
+    const quotation = await Quotation.findById(req.params.id);
+    if (!quotation) {
+      return res.status(404).json({ message: 'Quotation not found' });
+    }
+    await Quotation.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Quotation deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { createQuotation, getQuotations, getQuotationById, updateQuotation, deleteQuotation, updateFulfillmentStatus, updateEmiStatus };
