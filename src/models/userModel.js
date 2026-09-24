@@ -23,8 +23,12 @@ const userSchema = mongoose.Schema(
     role: {
       type: String,
       required: true,
-      enum: ['admin', 'staff', 'telecaller'],
+      enum: ['admin', 'staff', 'telecaller', 'customer'],
       default: 'staff',
+    },
+    lead: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Lead',
     },
     owner: {
       type: mongoose.Schema.Types.ObjectId,

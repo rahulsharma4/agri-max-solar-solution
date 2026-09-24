@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const mongoose = require('mongoose');
 const generateToken = require('../config/generateToken');
 
 // @desc    Auth user & get token
@@ -10,6 +11,12 @@ const authUser = async (req, res) => {
     
     const cleanEmail = email ? email.toString().trim().toLowerCase() : '';
     const cleanPassword = password ? password.toString().trim() : '';
+
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ 
+        message: 'Database is connecting. Please wait 3-5 seconds and click login again.' 
+      });
+    }
     
     const user = await User.findOne({ email: cleanEmail });
 
@@ -25,6 +32,7 @@ const authUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        lead: user.lead,
         companyDetails: user.companyDetails,
         token: generateToken(user._id, user.tokenVersion || 0),
       });

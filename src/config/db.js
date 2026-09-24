@@ -1,12 +1,11 @@
-const mongoose = require('mongoose');
 const dns = require('dns');
-
-// Fix for Windows local ISP DNS SRV lookup issues
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
 } catch (e) {
-  console.log('DNS setServers fallback error:', e.message);
+  console.log('DNS fallback error:', e.message);
 }
+
+const mongoose = require('mongoose');
 
 const autoSeedAdmin = async () => {
   try {
@@ -34,15 +33,40 @@ const autoSeedAdmin = async () => {
   }
 };
 
+let isConnecting = false;
+
 const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) return;
+  if (isConnecting) return;
+  isConnecting = true;
+
+  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/agrimaxsolar';
+  console.log('Connecting to MongoDB database...');
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, { family: 4 });
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 10000,
+    });
+    console.log(`MongoDB Connected Successfully: ${conn.connection.host}`);
+    isConnecting = false;
     await autoSeedAdmin();
   } catch (error) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
+    console.error(`MongoDB Atlas Connection Error: ${error.message}`);
+    isConnecting = false;
+    if (uri.includes('mongodb.net')) {
+      try {
+        console.log('Attempting connection to Local MongoDB...');
+        const localConn = await mongoose.connect('mongodb://127.0.0.1:27017/agrimaxsolar', {
+          serverSelectionTimeoutMS: 5000,
+        });
+        console.log(`MongoDB Local Connected Successfully: ${localConn.connection.host}`);
+        await autoSeedAdmin();
+      } catch (localErr) {
+        console.error(`Local MongoDB Fallback Error: ${localErr.message}`);
+      }
+    }
   }
 };
 
 module.exports = connectDB;
+
+

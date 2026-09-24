@@ -50,6 +50,8 @@ app.use('/api/product-prices', require('./src/routes/productPriceRoutes'));
 app.use('/api/inventory', require('./src/routes/inventoryRoutes'));
 app.use('/api/estimations', require('./src/routes/estimationRoutes'));
 app.use('/api/upload', require('./src/routes/uploadRoutes'));
+app.use('/api/referral-payouts', require('./src/routes/referralPayoutRoutes'));
+app.use('/api/customer', require('./src/routes/customerRoutes'));
 
 
 app.get('/api/clean-and-seed-temp', async (req, res) => {
