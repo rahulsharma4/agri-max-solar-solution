@@ -15,8 +15,8 @@ const updateAdmin = async () => {
     console.log('MongoDB Connected successfully!');
 
     const oldEmail = 'admin@priyankasolar.com';
-    const newEmail = process.env.ADMIN_EMAIL || 'rpravin337@gmail.com';
-    const newName = process.env.ADMIN_NAME || 'Admin Agri Max Solar';
+    const newEmail = process.env.ADMIN_EMAIL || 'asmmoney52@gmail.com';
+    const newName = process.env.ADMIN_NAME || 'ASM MONEY';
     const newPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
 
     // 1. Try to find the old admin user and update it

@@ -10,9 +10,9 @@ const mongoose = require('mongoose');
 const autoSeedAdmin = async () => {
   try {
     const User = require('../models/userModel');
-    const adminEmail = (process.env.ADMIN_EMAIL || 'rpravin337@gmail.com').toLowerCase().trim();
-    const adminName = process.env.ADMIN_NAME || 'Admin Agri Max Solar';
-    const adminPhone = process.env.ADMIN_PHONE || '7470700682';
+    const adminEmail = (process.env.ADMIN_EMAIL || 'asmmoney52@gmail.com').toLowerCase().trim();
+    const adminName = process.env.ADMIN_NAME || 'ASM MONEY';
+    const adminPhone = process.env.ADMIN_PHONE || '9093610141';
     const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
 
     let admin = await User.findOne({ email: adminEmail });
@@ -40,7 +40,7 @@ const connectDB = async () => {
   if (isConnecting) return;
   isConnecting = true;
 
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/agrimaxsolar';
+  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/asm_money';
   console.log('Connecting to MongoDB database...');
   try {
     const conn = await mongoose.connect(uri, {
@@ -55,7 +55,7 @@ const connectDB = async () => {
     if (uri.includes('mongodb.net')) {
       try {
         console.log('Attempting connection to Local MongoDB...');
-        const localConn = await mongoose.connect('mongodb://127.0.0.1:27017/agrimaxsolar', {
+        const localConn = await mongoose.connect('mongodb://127.0.0.1:27017/asm_money', {
           serverSelectionTimeoutMS: 5000,
         });
         console.log(`MongoDB Local Connected Successfully: ${localConn.connection.host}`);

@@ -77,7 +77,7 @@ const createQuotation = async (req, res) => {
       solarPanels: solarPanels || 'N/A',
       inverter: inverter || 'N/A',
       structureType: structureType || '',
-      offering: offering || 'AGRI MAX SOLAR SOLUTION',
+      offering: offering || 'ASM MONEY',
       gsmBased: gsmBased || 'No',
       cleaningFrequency: cleaningFrequency || 'NO',
       floorHeight: floorHeight || '',
