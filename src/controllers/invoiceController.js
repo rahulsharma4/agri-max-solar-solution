@@ -7,41 +7,68 @@ const Quotation = require('../models/quotationModel');
 const createInvoice = async (req, res) => {
   try {
     const { 
-      leadId, quotationId, systemSize, solarPanels, inverter,
-      baseAmount, gstPercentage, amountPaid, bankDetails, isGstInclusive
+      leadId, quotationId, customInvoiceNo, invoiceNo: manualInvoiceNo, date, dueDate,
+      systemSize, solarPanels, inverter, itemDescription, items,
+      baseAmount, gstPercentage, amountPaid, bankDetails, isGstInclusive, notes, terms
     } = req.body;
 
-    // Generate Invoice Number (e.g. EG-2026-515)
-    const year = new Date().getFullYear();
-    const lastInvoice = await Invoice.findOne({
-        invoiceNo: new RegExp(`^(INV|EG)-${year}-`)
-    }).sort({ invoiceNo: -1 });
+    // Handle Custom Invoice Number or Auto generation (Prefix: EG-)
+    let finalInvoiceNo = (manualInvoiceNo || customInvoiceNo || '').trim();
+    if (!finalInvoiceNo) {
+      const year = new Date().getFullYear();
+      const lastInvoice = await Invoice.findOne({
+          invoiceNo: new RegExp(`^(INV|EG)-${year}-`)
+      }).sort({ invoiceNo: -1 });
 
-    let nextNumber = 515;
-    if (lastInvoice) {
-        const lastNo = parseInt(lastInvoice.invoiceNo.split('-')[2]);
-        if (lastInvoice.invoiceNo.startsWith('INV-')) {
-            nextNumber = lastNo + 502; // Transition from INV-2026-0014 to EG-2026-516
-        } else {
-            nextNumber = lastNo + 1;
-        }
+      let nextNumber = 515;
+      if (lastInvoice) {
+          const lastNo = parseInt(lastInvoice.invoiceNo.split('-')[2]);
+          if (lastInvoice.invoiceNo.startsWith('INV-')) {
+              nextNumber = lastNo + 502; // Transition from INV-2026-0014 to EG-2026-516
+          } else {
+              nextNumber = lastNo + 1;
+          }
+      }
+      finalInvoiceNo = `EG-${year}-${nextNumber}`;
     }
-    const invoiceNo = `EG-${year}-${nextNumber}`;
+
+    // Process items if provided
+    let processedItems = [];
+    let calculatedBaseAmount = 0;
+
+    if (Array.isArray(items) && items.length > 0) {
+      processedItems = items.map(item => {
+        const qty = Number(item.quantity) || 1;
+        const rate = Number(item.rate) || 0;
+        const amt = Number(item.amount) || (qty * rate);
+        calculatedBaseAmount += amt;
+        return {
+          itemDescription: item.itemDescription || item.name || 'Product Item',
+          hsnCode: item.hsnCode || '',
+          quantity: qty,
+          rate: rate,
+          gstPercentage: Number(item.gstPercentage) || Number(gstPercentage) || 0,
+          amount: amt
+        };
+      });
+    }
 
     // Calculations
     const isInclusive = isGstInclusive === true || isGstInclusive === 'true';
     const gstPerc = isInclusive ? 8.9 : (Number(gstPercentage) || 0);
+
+    const inputBaseAmount = calculatedBaseAmount > 0 ? calculatedBaseAmount : (Number(baseAmount) || 0);
 
     let gstAmount = 0;
     let totalAmount = 0;
     let storedBaseAmount = 0;
 
     if (isInclusive) {
-      totalAmount = Number(baseAmount) || 0;
+      totalAmount = inputBaseAmount;
       gstAmount = (totalAmount * 8.9) / 108.9;
       storedBaseAmount = totalAmount - gstAmount;
     } else {
-      storedBaseAmount = Number(baseAmount) || 0;
+      storedBaseAmount = inputBaseAmount;
       gstAmount = (storedBaseAmount * gstPerc) / 100;
       totalAmount = storedBaseAmount + gstAmount;
     }
@@ -58,10 +85,14 @@ const createInvoice = async (req, res) => {
     const invoice = await Invoice.create({
       lead: leadId,
       quotation: quotationId,
-      invoiceNo,
-      systemSize,
-      solarPanels,
-      inverter,
+      invoiceNo: finalInvoiceNo,
+      date: date ? new Date(date) : new Date(),
+      dueDate: dueDate ? new Date(dueDate) : undefined,
+      items: processedItems,
+      systemSize: systemSize || 'N/A',
+      solarPanels: solarPanels || 'N/A',
+      inverter: inverter || 'N/A',
+      itemDescription: itemDescription || (processedItems.length > 0 ? processedItems[0].itemDescription : 'DESIGN, SUPPLY & INSTALLATION OF SOLAR PV SYSTEM'),
       baseAmount: storedBaseAmount,
       gstPercentage: gstPerc,
       gstAmount,
@@ -70,6 +101,8 @@ const createInvoice = async (req, res) => {
       amountPaid: amountPaid || 0,
       balanceAmount,
       paymentStatus,
+      notes,
+      terms,
       bankDetails,
       createdBy: req.user._id,
       owner: ownerId,
@@ -105,7 +138,7 @@ const getInvoices = async (req, res) => {
     }
 
     const invoices = await Invoice.find(query)
-      .populate('lead', 'name email phone address consumerNumber')
+      .populate('lead', 'name email phone address consumerNumber personalInfo')
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 });
     res.json(invoices);
@@ -142,4 +175,110 @@ const deleteInvoice = async (req, res) => {
   }
 };
 
-module.exports = { createInvoice, getInvoices, deleteInvoice };
+// @desc    Update an invoice
+// @route   PUT /api/invoices/:id
+// @access  Private/Admin
+const updateInvoice = async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id);
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    if (req.user.role !== 'admin') {
+      return res.status(401).json({ message: 'Not authorized to update invoice' });
+    }
+
+    const { 
+      invoiceNo, date, dueDate, baseAmount, gstPercentage, isGstInclusive, 
+      amountPaid, bankDetails, systemSize, solarPanels, inverter, 
+      itemDescription, items, notes, terms 
+    } = req.body;
+
+    if (invoiceNo !== undefined && invoiceNo.trim()) {
+      invoice.invoiceNo = invoiceNo.trim();
+    }
+    if (date !== undefined) invoice.date = new Date(date);
+    if (dueDate !== undefined) invoice.dueDate = dueDate ? new Date(dueDate) : null;
+    if (notes !== undefined) invoice.notes = notes;
+    if (terms !== undefined) invoice.terms = terms;
+
+    let processedItems = [];
+    let calculatedBaseAmount = 0;
+
+    if (Array.isArray(items)) {
+      processedItems = items.map(item => {
+        const qty = Number(item.quantity) || 1;
+        const rate = Number(item.rate) || 0;
+        const amt = Number(item.amount) || (qty * rate);
+        calculatedBaseAmount += amt;
+        return {
+          itemDescription: item.itemDescription || item.name || 'Product Item',
+          hsnCode: item.hsnCode || '',
+          quantity: qty,
+          rate: rate,
+          gstPercentage: Number(item.gstPercentage) || Number(gstPercentage) || 0,
+          amount: amt
+        };
+      });
+      invoice.items = processedItems;
+    }
+
+    const isInclusive = isGstInclusive !== undefined ? (isGstInclusive === true || isGstInclusive === 'true') : invoice.isGstInclusive;
+    const gstPerc = isInclusive ? 8.9 : (gstPercentage !== undefined ? (Number(gstPercentage) || 0) : invoice.gstPercentage);
+
+    let inputBaseAmt = 0;
+    if (calculatedBaseAmount > 0) {
+      inputBaseAmt = calculatedBaseAmount;
+    } else if (baseAmount !== undefined) {
+      inputBaseAmt = Number(baseAmount) || 0;
+    } else {
+      inputBaseAmt = invoice.isGstInclusive ? invoice.totalAmount : invoice.baseAmount;
+    }
+
+    let gstAmount = 0;
+    let totalAmount = 0;
+    let storedBaseAmount = 0;
+
+    if (isInclusive) {
+      totalAmount = Number(inputBaseAmt) || 0;
+      gstAmount = (totalAmount * 8.9) / 108.9;
+      storedBaseAmount = totalAmount - gstAmount;
+    } else {
+      storedBaseAmount = Number(inputBaseAmt) || 0;
+      gstAmount = (storedBaseAmount * gstPerc) / 100;
+      totalAmount = storedBaseAmount + gstAmount;
+    }
+
+    const paidAmt = amountPaid !== undefined ? Number(amountPaid) : invoice.amountPaid;
+    const balanceAmount = totalAmount - paidAmt;
+    
+    let paymentStatus = 'Unpaid';
+    if (paidAmt > 0) {
+      paymentStatus = paidAmt >= totalAmount ? 'Paid' : 'Partially Paid';
+    }
+
+    invoice.baseAmount = storedBaseAmount;
+    invoice.gstPercentage = gstPerc;
+    invoice.gstAmount = gstAmount;
+    invoice.isGstInclusive = isInclusive;
+    invoice.totalAmount = totalAmount;
+    invoice.amountPaid = paidAmt;
+    invoice.balanceAmount = balanceAmount;
+    invoice.paymentStatus = paymentStatus;
+    
+    if (bankDetails) invoice.bankDetails = bankDetails;
+    if (systemSize !== undefined) invoice.systemSize = systemSize;
+    if (solarPanels !== undefined) invoice.solarPanels = solarPanels;
+    if (inverter !== undefined) invoice.inverter = inverter;
+    if (itemDescription !== undefined) invoice.itemDescription = itemDescription;
+
+    const updatedInvoice = await invoice.save();
+    res.json(updatedInvoice);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+module.exports = { createInvoice, getInvoices, deleteInvoice, updateInvoice };
+
