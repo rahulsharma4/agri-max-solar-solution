@@ -280,11 +280,22 @@ const updateInvoice = async (req, res) => {
     }
 
     const paidAmt = amountPaid !== undefined ? Number(amountPaid) : invoice.amountPaid;
-    const balanceAmount = totalAmount - paidAmt;
-    
+    let balanceAmount = totalAmount - paidAmt;
     let paymentStatus = 'Unpaid';
-    if (paidAmt > 0) {
-      paymentStatus = paidAmt >= totalAmount ? 'Paid' : 'Partially Paid';
+
+    if (req.body.paymentStatus === 'Paid') {
+      paymentStatus = 'Paid';
+      invoice.amountPaid = totalAmount;
+      balanceAmount = 0;
+    } else if (req.body.paymentStatus === 'Unpaid') {
+      paymentStatus = 'Unpaid';
+      invoice.amountPaid = 0;
+      balanceAmount = totalAmount;
+    } else {
+      if (paidAmt > 0) {
+        paymentStatus = paidAmt >= totalAmount ? 'Paid' : 'Partially Paid';
+      }
+      invoice.amountPaid = paidAmt;
     }
 
     invoice.baseAmount = storedBaseAmount;
@@ -292,7 +303,6 @@ const updateInvoice = async (req, res) => {
     invoice.gstAmount = gstAmount;
     invoice.isGstInclusive = isInclusive;
     invoice.totalAmount = totalAmount;
-    invoice.amountPaid = paidAmt;
     invoice.balanceAmount = balanceAmount;
     invoice.paymentStatus = paymentStatus;
     
