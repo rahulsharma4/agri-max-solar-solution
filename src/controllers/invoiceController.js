@@ -4,6 +4,47 @@ const Quotation = require('../models/quotationModel');
 // @desc    Create a new invoice (from scratch or quotation)
 // @route   POST /api/invoices
 // @access  Private
+// Helper: get fiscal year string like "26-27"
+const getFiscalYear = () => {
+  const now = new Date();
+  const month = now.getMonth() + 1; // 1-12
+  const year = now.getFullYear();
+  const startYear = month >= 4 ? year : year - 1;
+  const endYear = startYear + 1;
+  return `${startYear.toString().slice(-2)}-${endYear.toString().slice(-2)}`;
+};
+
+// Helper: get next AGM invoice number
+const getNextAGMNumber = async () => {
+  const fy = getFiscalYear();
+  const prefix = `AGM/${fy}/`;
+  const lastInvoice = await Invoice.findOne({
+    invoiceNo: new RegExp(`^AGM/${fy}/`)
+  }).sort({ createdAt: -1 });
+
+  let nextNumber = 501;
+  if (lastInvoice) {
+    const parts = lastInvoice.invoiceNo.split('/');
+    const lastNo = parseInt(parts[2]);
+    if (!isNaN(lastNo)) {
+      nextNumber = lastNo + 1;
+    }
+  }
+  return `${prefix}${nextNumber}`;
+};
+
+// @desc    Get next invoice number
+// @route   GET /api/invoices/next-number
+// @access  Private
+const getNextInvoiceNo = async (req, res) => {
+  try {
+    const nextNo = await getNextAGMNumber();
+    res.json({ nextInvoiceNo: nextNo });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 const createInvoice = async (req, res) => {
   try {
     const { 
@@ -14,24 +55,10 @@ const createInvoice = async (req, res) => {
       dispatchDocNo, deliveryNoteDate, dispatchedThrough, destination, termsOfDelivery
     } = req.body;
 
-    // Handle Custom Invoice Number or Auto generation (Prefix: EG-)
+    // Handle Custom Invoice Number or Auto generation (Prefix: AGM/FY/)
     let finalInvoiceNo = (manualInvoiceNo || customInvoiceNo || '').trim();
     if (!finalInvoiceNo) {
-      const year = new Date().getFullYear();
-      const lastInvoice = await Invoice.findOne({
-          invoiceNo: new RegExp(`^(INV|EG)-${year}-`)
-      }).sort({ invoiceNo: -1 });
-
-      let nextNumber = 515;
-      if (lastInvoice) {
-          const lastNo = parseInt(lastInvoice.invoiceNo.split('-')[2]);
-          if (lastInvoice.invoiceNo.startsWith('INV-')) {
-              nextNumber = lastNo + 502; // Transition from INV-2026-0014 to EG-2026-516
-          } else {
-              nextNumber = lastNo + 1;
-          }
-      }
-      finalInvoiceNo = `EG-${year}-${nextNumber}`;
+      finalInvoiceNo = await getNextAGMNumber();
     }
 
     const isInclusive = isGstInclusive === true || isGstInclusive === 'true';
@@ -319,6 +346,6 @@ const updateInvoice = async (req, res) => {
   }
 };
 
-module.exports = { createInvoice, getInvoices, deleteInvoice, updateInvoice };
+module.exports = { createInvoice, getInvoices, deleteInvoice, updateInvoice, getNextInvoiceNo };
 
 
