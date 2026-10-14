@@ -1,5 +1,8 @@
 const Invoice = require('../models/invoiceModel');
+const InvoiceSettings = require('../models/invoiceSettingsModel');
 const Quotation = require('../models/quotationModel');
+
+const DEFAULT_INVOICE_DECLARATION = 'We declare that this invoice shows the actual price and all particulars are true and correct.\n\n1. Warranty of PV modules and Inverter by OEM\n2. Subject to Rajnandgaon jurisdiction';
 
 // @desc    Create a new invoice (from scratch or quotation)
 // @route   POST /api/invoices
@@ -51,9 +54,18 @@ const createInvoice = async (req, res) => {
       leadId, quotationId, customInvoiceNo, invoiceNo: manualInvoiceNo, date, dueDate,
       systemSize, solarPanels, inverter, itemDescription, items,
       baseAmount, gstPercentage, amountPaid, bankDetails, isGstInclusive, notes, terms,
+      customBuyer,
       referenceNo, otherReferences, buyersOrderNo, buyersOrderDate,
       dispatchDocNo, deliveryNoteDate, dispatchedThrough, destination, termsOfDelivery
     } = req.body;
+
+    const hasCustomBuyer = customBuyer && typeof customBuyer === 'object' && !Array.isArray(customBuyer);
+    if (Boolean(leadId) === Boolean(hasCustomBuyer)) {
+      return res.status(400).json({ message: 'Select an existing lead or provide custom buyer details' });
+    }
+    if (hasCustomBuyer && (!customBuyer.name?.trim() || !customBuyer.phone?.trim() || !customBuyer.address?.trim())) {
+      return res.status(400).json({ message: 'Custom buyer name, phone, and address are required' });
+    }
 
     // Handle Custom Invoice Number or Auto generation (Prefix: AGM/FY/)
     let finalInvoiceNo = (manualInvoiceNo || customInvoiceNo || '').trim();
@@ -116,7 +128,17 @@ const createInvoice = async (req, res) => {
     const ownerId = req.user.role === 'admin' ? req.user._id : req.user.owner;
 
     const invoice = await Invoice.create({
-      lead: leadId,
+      lead: leadId || null,
+      customBuyer: hasCustomBuyer ? {
+        name: customBuyer.name.trim(),
+        email: customBuyer.email?.trim() || '',
+        consumerNumber: customBuyer.consumerNumber?.trim() || '',
+        phone: customBuyer.phone.trim(),
+        address: customBuyer.address.trim(),
+        companyName: customBuyer.companyName?.trim() || '',
+        companyAddress: customBuyer.companyAddress?.trim() || '',
+        gstNumber: customBuyer.gstNumber?.trim() || '',
+      } : null,
       quotation: quotationId,
       invoiceNo: finalInvoiceNo,
       date: date ? new Date(date) : new Date(),
@@ -185,6 +207,40 @@ const getInvoices = async (req, res) => {
     res.json(invoices);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+};
+
+const getInvoiceDeclaration = async (req, res) => {
+  try {
+    const settings = await InvoiceSettings.findOneAndUpdate(
+      { key: 'global' },
+      { $setOnInsert: { declaration: DEFAULT_INVOICE_DECLARATION } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    res.json({ declaration: settings.declaration });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const updateInvoiceDeclaration = async (req, res) => {
+  try {
+    const { declaration } = req.body;
+    if (typeof declaration !== 'string') {
+      return res.status(400).json({ message: 'Declaration must be text' });
+    }
+    if (declaration.length > 5000) {
+      return res.status(400).json({ message: 'Declaration cannot exceed 5000 characters' });
+    }
+
+    const settings = await InvoiceSettings.findOneAndUpdate(
+      { key: 'global' },
+      { $set: { declaration } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    res.json({ declaration: settings.declaration });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -346,6 +402,13 @@ const updateInvoice = async (req, res) => {
   }
 };
 
-module.exports = { createInvoice, getInvoices, deleteInvoice, updateInvoice, getNextInvoiceNo };
-
+module.exports = {
+  createInvoice,
+  getInvoices,
+  deleteInvoice,
+  updateInvoice,
+  getNextInvoiceNo,
+  getInvoiceDeclaration,
+  updateInvoiceDeclaration,
+};
 

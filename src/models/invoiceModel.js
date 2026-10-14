@@ -10,12 +10,27 @@ const invoiceItemSchema = mongoose.Schema({
   amount: { type: Number, default: 0 }
 });
 
+const invoiceBuyerSchema = mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, default: '' },
+  consumerNumber: { type: String, default: '' },
+  phone: { type: String, required: true },
+  address: { type: String, required: true },
+  companyName: { type: String, default: '' },
+  companyAddress: { type: String, default: '' },
+  gstNumber: { type: String, default: '' },
+}, { _id: false });
+
 const invoiceSchema = mongoose.Schema(
   {
     lead: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Lead',
-      required: true,
+      default: null,
+    },
+    customBuyer: {
+      type: invoiceBuyerSchema,
+      default: null,
     },
     quotation: {
       type: mongoose.Schema.Types.ObjectId,
@@ -92,5 +107,4 @@ const invoiceSchema = mongoose.Schema(
 const Invoice = mongoose.model('Invoice', invoiceSchema);
 
 module.exports = Invoice;
-
 
