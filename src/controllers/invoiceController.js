@@ -17,23 +17,21 @@ const getFiscalYear = () => {
   return `${startYear.toString().slice(-2)}-${endYear.toString().slice(-2)}`;
 };
 
-// Helper: get next AGM invoice number
-const getNextAGMNumber = async () => {
+// Helper: get next AMS invoice number while continuing the existing sequence
+const getNextAMSNumber = async () => {
   const fy = getFiscalYear();
-  const prefix = `AGM/${fy}/`;
-  const lastInvoice = await Invoice.findOne({
-    invoiceNo: new RegExp(`^AGM/${fy}/`)
-  }).sort({ createdAt: -1 });
+  const invoices = await Invoice.find({
+    invoiceNo: new RegExp(`^(?:AGM|AMS)/${fy}/`)
+  }).select('invoiceNo');
 
   let nextNumber = 501;
-  if (lastInvoice) {
-    const parts = lastInvoice.invoiceNo.split('/');
-    const lastNo = parseInt(parts[2]);
-    if (!isNaN(lastNo)) {
-      nextNumber = lastNo + 1;
+  for (const invoice of invoices) {
+    const serialNumber = Number(invoice.invoiceNo.split('/')[2]);
+    if (Number.isSafeInteger(serialNumber)) {
+      nextNumber = Math.max(nextNumber, serialNumber + 1);
     }
   }
-  return `${prefix}${nextNumber}`;
+  return `AMS/${fy}/${nextNumber}`;
 };
 
 // @desc    Get next invoice number
@@ -41,7 +39,7 @@ const getNextAGMNumber = async () => {
 // @access  Private
 const getNextInvoiceNo = async (req, res) => {
   try {
-    const nextNo = await getNextAGMNumber();
+    const nextNo = await getNextAMSNumber();
     res.json({ nextInvoiceNo: nextNo });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -67,10 +65,10 @@ const createInvoice = async (req, res) => {
       return res.status(400).json({ message: 'Custom buyer name, phone, and address are required' });
     }
 
-    // Handle Custom Invoice Number or Auto generation (Prefix: AGM/FY/)
+    // Handle Custom Invoice Number or auto generation (Prefix: AMS/FY/)
     let finalInvoiceNo = (manualInvoiceNo || customInvoiceNo || '').trim();
     if (!finalInvoiceNo) {
-      finalInvoiceNo = await getNextAGMNumber();
+      finalInvoiceNo = await getNextAMSNumber();
     }
 
     const isInclusive = isGstInclusive === true || isGstInclusive === 'true';
@@ -411,4 +409,3 @@ module.exports = {
   getInvoiceDeclaration,
   updateInvoiceDeclaration,
 };
-
