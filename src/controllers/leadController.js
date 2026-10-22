@@ -128,16 +128,20 @@ const handleGoogleFormWebhook = async (req, res) => {
   }
 };
 
-// @desc    Get all leads (Admin: all, Staff: assigned only)
+// @desc    Get all leads (Admin: all, Staff: assigned or created by them)
 // @route   GET /api/leads
 // @access  Private
 const getLeads = async (req, res) => {
   try {
     let query = { owner: req.user.role === 'admin' ? req.user._id : req.user.owner };
 
-    // If not admin, only show assigned leads
+    // If not admin, show leads assigned to them OR created by them
     if (req.user.role !== 'admin') {
-      query.assignedTo = req.user._id;
+      query.$or = [
+        { assignedTo: req.user._id },
+        { createdBy: req.user._id }
+      ];
+      // Remove the top-level assignedTo filter since we're using $or
     }
 
     const leads = await Lead.find(query)
@@ -165,9 +169,13 @@ const updateLead = async (req, res) => {
         return res.status(400).json({ message: 'This lead is closed and cannot be modified' });
       }
 
-      // Check if staff is authorized to update this lead
-      if (req.user.role !== 'admin' && lead.assignedTo.toString() !== req.user._id.toString()) {
-        return res.status(401).json({ message: 'Not authorized to update this lead' });
+      // Check if staff is authorized to update this lead (assigned to them OR created by them)
+      if (req.user.role !== 'admin') {
+        const isAssigned = lead.assignedTo && lead.assignedTo.toString() === req.user._id.toString();
+        const isCreatedBy = lead.createdBy && lead.createdBy.toString() === req.user._id.toString();
+        if (!isAssigned && !isCreatedBy) {
+          return res.status(401).json({ message: 'Not authorized to update this lead' });
+        }
       }
 
       if (req.body.status && req.body.status !== lead.status) {
@@ -220,9 +228,14 @@ const updateLead = async (req, res) => {
         lead.personalInfo = { ...lead.personalInfo, ...req.body.personalInfo };
       }
 
-      // Only admin can reassign leads
+      // Admin can reassign to anyone; staff can only self-assign
       if (req.user.role === 'admin') {
         lead.assignedTo = req.body.assignedTo || lead.assignedTo;
+      } else if (req.user.role === 'staff' && req.body.assignedTo !== undefined) {
+        // Staff can only assign to themselves
+        if (req.body.assignedTo === req.user._id.toString() || req.body.assignedTo === '' || req.body.assignedTo === null) {
+          lead.assignedTo = req.body.assignedTo || lead.assignedTo;
+        }
       }
 
       const isNewFollowUp = req.body.followUpDate && req.body.followUpDate !== lead.followUpDate?.toISOString();
